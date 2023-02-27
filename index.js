@@ -19,20 +19,7 @@ async function queryDatabase(databaseId) {
         });
         return response.results;
     } catch (error) {
-        console.log(error.body);
-    }
-}
-
-// This function is used to access up to 50 child blocks per page given the page ID
-async function getChildBlocks(pageId) {
-    try {
-        const response = await notion.blocks.children.list({
-            block_id: pageId,
-            page_size: 50,
-        });
-        return response.results;
-    } catch (error) {
-        console.log(error.body);
+        console.error(error.body);
     }
 }
 
@@ -67,4 +54,64 @@ async function getChart(databaseId, chartType) {
     return myChart.getUrl();
 }
 
-getChart(databaseId, 'line');
+async function getImgurURL(clientId, chartlink) {
+
+    const imgurLink = await axios
+        .post('https://api.imgur.com/3/image', chartlink, {
+            headers: {
+                Accept: "application/json",
+                Authorization: `Client-ID ${clientId}`,
+            },
+        })
+        .then(({ data }) => {
+            return data.data.link;
+        });
+
+    return imgurLink;
+}
+
+async function updateImageBlock(pageId, newLink) {
+    try {
+        const response = await notion.blocks.children.list({
+            block_id: pageId,
+        });
+
+        const childBlocks = response.results
+        let imageBlockId = '';
+        for (j = 0; j < childBlocks.length; ++j) {
+            if (childBlocks[j].type === 'image') {
+                imageBlockId = childBlocks[j].id;
+                break;
+            }
+        }
+        if (imageBlockId === '') {
+            console.error("No Image Block found")
+            return;
+        }
+
+        const updateResponse = await notion.blocks.update({
+            block_id: imageBlockId,
+            "image": {
+                "external": {
+                    "url": newLink
+                }
+            }
+        })
+
+        return updateResponse;
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+async function updateChart(database_id, page_id, client_id) { 
+    const chartURL = await getChart(database_id, 'line');
+    console.log(`chart URL: ${chartURL}`)
+
+    const imgurURL = await getImgurURL(client_id, chartURL);
+    console.log(`imgur URL: ${imgurURL}`)
+
+    const resp = await updateImageBlock(page_id, imgurURL);
+}
+
+updateChart(databaseId, pageId, clientId);
