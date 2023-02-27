@@ -40,64 +40,31 @@ async function getChildBlocks(pageId) {
 // and return the QuickChart URL containing the chart image 
 async function getChart(databaseId, chartType) {
 
-    // const data = await queryDatabase(databaseId)
-    //     .then(async results => {
-    //         const dataPts = [];
-    //         const labels = [];
-
-    //         for (i = 0; i < results.length; i++) {
-    //             const pageId = results[i].id;
-    //             const nameId = results[i].properties.Name.id;
-    //             const scoreId = results[i].properties.Score.id;
-
-    //             try {
-    //                 const nameVal = await notion.pages.properties.retrieve({ page_id: pageId, property_id: nameId });
-    //                 const scoreVal = await notion.pages.properties.retrieve({ page_id: pageId, property_id: scoreId });
-    //                 labels.push(nameVal.results[0].title.text.content);
-    //                 dataPts.push(scoreVal.number);
-
-    //             } catch (error) {
-    //                 console.log(error.body);
-    //             }
-    //         }
-    //         return { "Labels": labels, "Data Points": dataPts };
-    //     });
-
     const results = await queryDatabase(databaseId)
+    const labels = Array(31).fill('');
+    const dataPts = Array(31).fill(0);
 
     for (i = 0; i < results.length; i++) {
-        const pageId = results[i].id;
-        // const nameId = results[i].properties.Name.id;
-        // const scoreId = results[i].properties.Score.id;
-
-        try {
-            // const nameVal = await notion.pages.properties.retrieve({ page_id: pageId, property_id: nameId });
-            // const scoreVal = await notion.pages.properties.retrieve({ page_id: pageId, property_id: scoreId });
-            // labels.push(nameVal.results[0].title.text.content);
-            // dataPts.push(scoreVal.number);
-            console.log(results[i].properties)
-
-        } catch (error) {
-            console.log(error.body);
-        }
+        const curResultProp = results[i].properties;
+        const dayIdx = parseInt(curResultProp.Day.title[0].plain_text) - 1
+        labels[dayIdx] = curResultProp.Day.title[0].plain_text
+        dataPts[dayIdx] = curResultProp.Progress.formula.number / (Object.keys(curResultProp).length - 2)
     }
-    // console.log(data)
 
-    // const myChart = new QuickChart();
-    // myChart.setConfig({
-    //     type: chartType,
-    //     data: {
-    //         labels: data["Labels"],
-    //         datasets: [{ label: 'Scores', data: data["Data Points"] }]
-    //     },
-    // })
-    //     .setWidth(800)
-    //     .setHeight(400)
-    //     .setBackgroundColor('transparent');
+    const myChart = new QuickChart();
+    myChart.setConfig({
+        type: chartType,
+        data: {
+            labels: labels,
+            datasets: [{ label: 'Scores', data: dataPts }]
+        },
+    })
+        .setWidth(800)
+        .setHeight(400)
+        .setBackgroundColor('transparent');
 
     // the chart URL
-    //console.log(myChart.getUrl());
-    // return myChart.getUrl();
+    return myChart.getUrl();
 }
 
 getChart(databaseId, 'line');
